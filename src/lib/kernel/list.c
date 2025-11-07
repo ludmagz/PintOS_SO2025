@@ -122,7 +122,7 @@ list_prev (struct list_elem *elem)
    reverse order, from back to front.  Here's typical usage,
    following the example from the top of list.h:
 
-      for (e = list_rbegin (&foo_list); e != list_rend (&foo_list);
+     rbegi for (e = list_rbegin (&foo_list); e != list_rend (&foo_list);
            e = list_prev (e))
         {
           struct foo *f = list_entry (e, struct foo, elem);
@@ -245,6 +245,8 @@ list_push_back (struct list *list, struct list_elem *elem)
        ...do something with e...
      }
 */
+
+
 struct list_elem *
 list_remove (struct list_elem *elem)
 {
@@ -253,6 +255,8 @@ list_remove (struct list_elem *elem)
   elem->next->prev = elem->prev;
   return elem->next;
 }
+
+
 
 /* Removes the front element from LIST and returns it.
    Undefined behavior if LIST is empty before removal. */
@@ -264,6 +268,8 @@ list_pop_front (struct list *list)
   return front;
 }
 
+
+
 /* Removes the back element from LIST and returns it.
    Undefined behavior if LIST is empty before removal. */
 struct list_elem *
@@ -274,6 +280,8 @@ list_pop_back (struct list *list)
   return back;
 }
 
+
+
 /* Returns the front element in LIST.
    Undefined behavior if LIST is empty. */
 struct list_elem *
@@ -283,6 +291,8 @@ list_front (struct list *list)
   return list->head.next;
 }
 
+
+
 /* Returns the back element in LIST.
    Undefined behavior if LIST is empty. */
 struct list_elem *
@@ -291,6 +301,8 @@ list_back (struct list *list)
   ASSERT (!list_empty (list));
   return list->tail.prev;
 }
+
+
 
 /* Returns the number of elements in LIST.
    Runs in O(n) in the number of elements. */
@@ -305,12 +317,16 @@ list_size (struct list *list)
   return cnt;
 }
 
+
+
 /* Returns true if LIST is empty, false otherwise. */
 bool
 list_empty (struct list *list)
 {
   return list_begin (list) == list_end (list);
 }
+
+
 
 /* Swaps the `struct list_elem *'s that A and B point to. */
 static void
@@ -320,6 +336,8 @@ swap (struct list_elem **a, struct list_elem **b)
   *a = *b;
   *b = t;
 }
+
+
 
 /* Reverses the order of LIST. */
 void
