@@ -67,8 +67,6 @@ static long long idle_ticks;    /* # of timer ticks spent idle. */
 static long long kernel_ticks;  /* # of timer ticks in kernel threads. */
 static long long user_ticks;    /* # of timer ticks in user programs. */
 
-/* betalterações: */
-static long long next_wakeup = INT64_MAX;
 
 /* Scheduling. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
@@ -191,7 +189,7 @@ thread_print_stats (void)
    for the new thread, or TID_ERROR if creation fails.
 
    If thread_start() has been called, then the new thread may be
-   scheduled before thread_create() returns.  It could even exit
+   scheduled before thread_create() rum wait minimamente implementado para ele não "passar direto" e por fim implementar o argument parssing, a ordem das implementações deve ser basicamente essa, os primeiros testes devem funcionar logo de cara se tudo tiver certo, sem os argumentos sendo passados de forma certa o resto basicamente não pega. Outra observação é de como rodar os testes nessa fase, por base podemos usar o comando T=nome; ../../utils/pintos --qemu --filesys-size=2 -p tests/userprog/$T -a $T -- -q -f run $T onde nome deve ser o nome do teste(no caso do binário do teste, pois diferente da primeira fase que os testes eram funções, nessa eles são arquivos .c que são compilados e depois passados para um sistema de arquivos 'fake' temporário, a criação dele está descrita na documentação em ineturns.  It could even exit
    before thread_create() returns.  Contrariwise, the original
    thread may run for any amount of time before the new thread is
    scheduled.  Use a semaphore or some other form of
@@ -386,10 +384,21 @@ typedef bool list_less_func (const struct list_elem *a,
 static bool wakeup_less (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
     const struct thread *ta = list_entry(a, struct thread, elem);
     const struct thread *tb = list_entry(b, struct thread, elem);
-
+    
+    if(ta->wakeup_tick==tb->wakeup_tick){
+      return ta->priority>tb->priority;
+    }
     return ta->wakeup_tick < tb->wakeup_tick;
 }
 // ================================================================================================
+
+
+static bool ord_prio (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+    const struct thread *ta = list_entry(a, struct thread, elem);
+    const struct thread *tb = list_entry(b, struct thread, elem);
+  
+    return ta->priority > tb->priority;
+}
 
 
 
@@ -405,14 +414,11 @@ void thread_sleep(int64_t ticks) {
 
     old_level = intr_disable ();
 
-    // Insere na lista
-    list_push_back(&sleep_list, &cur->elem);
+    // Insere ordenado na lista
+    
 
-    // Sortar sleep_list
-    list_sort(&sleep_list, wakeup_less, NULL);
+    list_insert_ordered(&sleep_list,&cur->elem,wakeup_less, NULL);
 
-    // Pegar next_wakeup = sleep_list.front
-    next_wakeup = list_entry(list_front(&sleep_list), struct thread, elem)->wakeup_tick;
 
     schedule();
 
@@ -423,7 +429,7 @@ void thread_sleep(int64_t ticks) {
 
 
 // ====================== THREAD INTERRUPT ======================
-void thread_interrupt(void) {
+void thread_interrupt(int64_t actual_time) {
 
   enum intr_level old_level;
 
@@ -435,11 +441,12 @@ void thread_interrupt(void) {
 
     struct thread *t = list_entry(list_front(&sleep_list), struct thread, elem);
 
-    while ( controlando && t->wakeup_tick <= next_wakeup) {
+    while ( controlando && t->wakeup_tick <= actual_time) {
 
       list_pop_front(&sleep_list);
 
-      list_push_back(&ready_list, &t->elem);
+      list_insert_ordered(&ready_list, &t->elem,ord_prio,NULL);
+
 
       if (!list_empty(&sleep_list)) {
         t = list_entry(list_front(&sleep_list), struct thread, elem);
@@ -450,19 +457,7 @@ void thread_interrupt(void) {
       }
 
     }
-
-    if (controlando) {
-      next_wakeup = t->wakeup_tick;
-    } 
     
-    else {
-      next_wakeup = INT64_MAX;
-    }
-    
-  }
-
-  else {
-    next_wakeup = INT64_MAX;
   }
   
   intr_set_level (old_level);
