@@ -122,13 +122,14 @@ list_prev (struct list_elem *elem)
    reverse order, from back to front.  Here's typical usage,
    following the example from the top of list.h:
 
-     rbegi for (e = list_rbegin (&foo_list); e != list_rend (&foo_list);
+     for (e = list_rbegin (&foo_list); e != list_rend (&foo_list);
            e = list_prev (e))
         {
           struct foo *f = list_entry (e, struct foo, elem);
           ...do something with f...
         }
 */
+
 struct list_elem *
 list_rend (struct list *list) 
 {

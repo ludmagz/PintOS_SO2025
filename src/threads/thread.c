@@ -205,8 +205,6 @@ thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
 {
   struct thread *t;
-/* Thread identifier type.
-   You can redef
   struct kernel_thread_frame *kf;
   struct switch_entry_frame *ef;
   struct switch_threads_frame *sf;
@@ -381,9 +379,21 @@ typedef bool list_less_func (const struct list_elem *a,
                              const struct list_elem *b,
                              void *aux);
 
-           
 
-/* betalterações: */
+
+
+// ================================= COMPARADOR PARA THREAD SLEEP =================================
+static bool wakeup_less (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+    const struct thread *ta = list_entry(a, struct thread, elem);
+    const struct thread *tb = list_entry(b, struct thread, elem);
+
+    return ta->wakeup_tick < tb->wakeup_tick;
+}
+// ================================================================================================
+
+
+
+// ====================== THREAD SLEEP ======================
 void thread_sleep(int64_t ticks) {
 
   struct thread *cur = thread_current();
@@ -393,22 +403,72 @@ void thread_sleep(int64_t ticks) {
     cur->status = THREAD_BLOCKED;
     cur->wakeup_tick = ticks;
 
-
     old_level = intr_disable ();
-    
-    if (cur->wakeup_tick < next_wakeup) {
-      next_wakeup = cur->wakeup_tick;
-    }
 
-    list_insert_ordered(&sleep_list, &cur->elem, );
+    // Insere na lista
+    list_push_back(&sleep_list, &cur->elem);
+
+    // Sortar sleep_list
+    list_sort(&sleep_list, wakeup_less, NULL);
+
+    // Pegar next_wakeup = sleep_list.front
+    next_wakeup = list_entry(list_front(&sleep_list), struct thread, elem)->wakeup_tick;
 
     schedule();
 
     intr_set_level (old_level);
   }
 }
+// ==========================================================
 
 
+// ====================== THREAD INTERRUPT ======================
+void thread_interrupt(void) {
+
+  enum intr_level old_level;
+
+  old_level = intr_disable ();
+
+  bool controlando = true;
+
+  if (!list_empty(&sleep_list)) {
+
+    struct thread *t = list_entry(list_front(&sleep_list), struct thread, elem);
+
+    while ( controlando && t->wakeup_tick <= next_wakeup) {
+
+      list_pop_front(&sleep_list);
+
+      list_push_back(&ready_list, &t->elem);
+
+      if (!list_empty(&sleep_list)) {
+        t = list_entry(list_front(&sleep_list), struct thread, elem);
+      } 
+      
+      else {
+        controlando = false;
+      }
+
+    }
+
+    if (controlando) {
+      next_wakeup = t->wakeup_tick;
+    } 
+    
+    else {
+      next_wakeup = INT64_MAX;
+    }
+    
+  }
+
+  else {
+    next_wakeup = INT64_MAX;
+  }
+  
+  intr_set_level (old_level);
+  
+}
+// ==============================================================
 
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
