@@ -14,7 +14,7 @@
 2. inserimos ela ordenadamente na ready_list pela ordem de prioridade da thread
 3. mudamos a referência de head para a thread seguinte, que agora ocupa a primeira posição da sleep_list
 4. rodamos o while de checagem para a nova head
-5. por fim, saímos do while quando não há mais threads para acordar no atual instante e reativamso as interrupções
+5. por fim, saímos do while quando não há mais threads para acordar no atual instante e reativamos as interrupções
 
 ## 🕓 Em 'timer.c'
 #### 🔇 Atualização da função 'void timer_sleep (int64_t ticks)'
