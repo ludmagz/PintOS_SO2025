@@ -18,7 +18,7 @@
 
 ## 🕓 Em 'timer.c'
 #### 🔇 Atualização da função 'void timer_sleep (int64_t ticks)'
-- **antes**: a função timer_sleep estava em busy wait, ciclando na ready_list, sem haver escalonamento, até que, finalmente, o tempo que foi determinado para que ela ficasse bloqueada acabe.
+- **antes**: a função timer_sleep estava em busy wait, ciclando na ready_list, sem haver escalonamento, até que, finalmente, o tempo que havia sido determinado para que ela ficasse bloqueada acabesse.
 - **depois**: foi implementada a lógica de que, caso uma thread deva entrar no estado de bloqueada, chamamos a função thread_sleep, passando para ela o momento que tal thread deve acordar.
 
 #### 🔊 Atualização da função 'static void timer_interrupt(struct intr_frame *args UNUSED)'
