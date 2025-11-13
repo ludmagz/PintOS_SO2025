@@ -23,7 +23,7 @@
 
 #### 🔊 Atualização da função 'static void timer_interrupt(struct intr_frame *args UNUSED)'
 - **antes**: a cada tick do timer, ela chamava thread_tick(), função essa que atualiza os ticks do sistema
-- **depois**: agora, além das funções anteriores, ela passou a chamar a função timer_interrupt, passando como argumento o tick em que estamos agora (atual_time)
+- **depois**: agora, além das funções anteriores, ela passou a chamar a função thread_interrupt, passando como argumento o tick em que estamos agora (atual_time)
 
 ## ✉ Em 'thread.h'
 #### 📁 Adição das novas funções de thread implementadas
