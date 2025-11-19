@@ -111,21 +111,24 @@ timer_sleep (int64_t ticks)
 
 
 // ========================= TIMER INTER-RUPERTS =========================
+
+
 static void timer_interrupt(struct intr_frame *args UNUSED) {
   ticks++;
   thread_tick();
 
-  int64_t actual_time = timer_ticks ();
-
+  int64_t actual_time = ticks;
+  increment_recent_cpu(thread_current());
   if (actual_time % TIMER_FREQ == 0) {
-    avg = thread_get_load_avg();
-    thread_current()->recent_cpu = thread_get_recent_cpu();
-    thread_current()->priority = SUB_FP_INT(SUB_FP(INT_TO_FP(63),DIV_FP_INT(thread_current()->recent_cpu,4)), thread_current()->nice * 2)
+    update_load_avg();
+    update_recent_cpu_all();
+    
   }
-
+  if(ticks%4 ==0){
+    update_priority_all();
+  }
+  
   thread_interrupt(actual_time);
-
-
 
 }
 
