@@ -26,21 +26,21 @@
 
 typedef int fixed_t;
 
-#define F (1 << 14); // 2¹⁴
+#define F (1 << 14) // 2¹⁴
 
-#define INT_TO_FP(n) ((fixed_t)(n) * F); 
-#define FP_TO_INT(x) (x / F);
-#define FP_TO_INT_NEAR(x) (x >= 0 ? (x + F / 2) / F : (x - F / 2) / F);
+#define INT_TO_FP(n) ((fixed_t)(n) * F) 
+#define FP_TO_INT(x) (x / F)
+#define FP_TO_INT_NEAR(x) (x >= 0 ? (x + F / 2) / F : (x - F / 2) / F)
 
-#define ADD_FP(x,y) (x + y);
-#define SUB_FP(x,y) (x - y);
-#define ADD_FP_INT(x,n) (x + (n * F));
-#define SUB_FP_INT(x,n) (x - (n * F));
+#define ADD_FP(x,y) (x + y)
+#define SUB_FP(x,y) (x - y)
+#define ADD_FP_INT(x,n) (x + (n * F))
+#define SUB_FP_INT(x,n) (x - (n * F))
 
-#define MUL_FP(x,y) ( (fixed_t) (((int64_t)(x)*y) / F ) );
-#define MUL_FP_INT(x,n) (x * n);
-#define DIV_FP(x,y) ( (fixed_t) (((int64_t)(x)*F) / y) );
-#define DIV_FP_INT(x,n) (x / n);
+#define MUL_FP(x,y) ( (fixed_t) (((int64_t)(x)*y) / F ) )
+#define MUL_FP_INT(x,n) (x * n)
+#define DIV_FP(x,y) ( (fixed_t) (((int64_t)(x)*F) / y) )
+#define DIV_FP_INT(x,n) (x / n)
 
 // ==================================================================
 
@@ -296,6 +296,18 @@ thread_block (void)
    be important: if the caller had disabled interrupts itself,
    it may expect that it can atomically unblock a thread and
    update other data. */
+
+
+/*só pra pegar no*/
+static bool ord_prio (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
+    const struct thread *ta = list_entry(a, struct thread, elem);
+    const struct thread *tb = list_entry(b, struct thread, elem);
+  
+    return ta->priority > tb->priority;
+}
+
+
+
 void
 thread_unblock (struct thread *t) 
 {
@@ -305,7 +317,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem,ord_prio,NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -419,12 +431,7 @@ static bool wakeup_less (const struct list_elem *a, const struct list_elem *b, v
 // ================================================================================================
 
 
-static bool ord_prio (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED) {
-    const struct thread *ta = list_entry(a, struct thread, elem);
-    const struct thread *tb = list_entry(b, struct thread, elem);
-  
-    return ta->priority > tb->priority;
-}
+
 
 
 
@@ -435,11 +442,11 @@ void thread_sleep(int64_t ticks) {
   enum intr_level old_level;
 
   if (cur != idle_thread) {
-    cur->status = THREAD_BLOCKED;
-    cur->wakeup_tick = ticks;
+    
 
     old_level = intr_disable ();
-
+    cur->status = THREAD_BLOCKED;
+    cur->wakeup_tick = ticks;
     // Insere ordenado na lista
     
 
@@ -460,7 +467,7 @@ void thread_interrupt(int64_t actual_time) {
   enum intr_level old_level;
 
   old_level = intr_disable ();
-
+  bool need_yield = false;
   bool controlando = true;
 
   if (!list_empty(&sleep_list)) {
@@ -471,7 +478,9 @@ void thread_interrupt(int64_t actual_time) {
 
       list_pop_front(&sleep_list);
 
-      list_insert_ordered(&ready_list, &t->elem,ord_prio,NULL);
+      list_insert_ordered(&ready_list, &t->elem, ord_prio, NULL);
+
+      if (t->priority > thread_current()->priority) need_yield = true;
 
 
       if (!list_empty(&sleep_list)) {
@@ -486,7 +495,9 @@ void thread_interrupt(int64_t actual_time) {
     
   }
   
-  intr_set_level (old_level);
+  if (need_yield) intr_yield_on_return();
+
+  intr_set_level(old_level);
   
 }
 // ==============================================================
@@ -539,6 +550,7 @@ thread_get_priority (void)
 
 // =================================================================
 
+
 void
 thread_set_nice (int nice) 
 {
@@ -552,28 +564,95 @@ thread_get_nice (void)
 }
 
 int
-thread_get_load_avg (void) 
+update_load_avg (void) 
 {
 
-  int cur_idle;
-  if (thread_current() != idle_thread) cur_idle = 1;
-  else cur_idle = 0; 
+  int ready_threads = list_size(&ready_list);
+  if (thread_current() != idle_thread)
+      ready_threads += 1;
 
   avg = ADD_FP(MUL_FP((DIV_FP(INT_TO_FP(59), INT_TO_FP(60))), avg),  
-               MUL_FP_INT((DIV_FP(INT_TO_FP(1), INT_TO_FP(60))), (int)list_size(&ready_list) + cur_idle) ); 
+               MUL_FP_INT((DIV_FP(INT_TO_FP(1), INT_TO_FP(60))), ready_threads)); 
   
-  return MUL_FP_INT(avg, 100);
+  return avg;
 }
 
-int
-thread_get_recent_cpu (void) 
+int 
+thread_get_load_avg(void)
+{
+  return FP_TO_INT_NEAR(MUL_FP_INT(avg,100));
+}
+
+void increment_recent_cpu(struct thread *t){
+  if(t!=idle_thread){
+    t->recent_cpu = ADD_FP_INT(t->recent_cpu,1);
+  }
+}
+
+void
+update_recent_cpu (struct thread *t) 
 {
   
-  int rec_cpu = ADD_FP_INT(MUL_FP(DIV_FP( MUL_FP_INT(avg, 2) , ADD_FP_INT(MUL_FP_INT(avg, 2),1)),  thread_current()->recent_cpu), thread_current()->nice) ;
+  fixed_t rec_cpu = ADD_FP(MUL_FP(DIV_FP( MUL_FP_INT(avg, 2) , ADD_FP_INT(MUL_FP_INT(avg, 2),1)),  t->recent_cpu), INT_TO_FP(t->nice)) ;
 
-  return MUL_FP_INT(rec_cpu, 100);
+  t->recent_cpu = rec_cpu;
 }
 
+void
+update_recent_cpu_all(void) {
+    struct list_elem *e;
+
+    for (e = list_begin(&all_list);
+         e != list_end(&all_list);
+         e = list_next(e)) {
+
+        struct thread *t = list_entry(e, struct thread, allelem);
+        update_recent_cpu(t);
+    }
+    list_sort(&ready_list,ord_prio, NULL);
+}
+
+
+int thread_get_recent_cpu(void)
+{
+  enum intr_level old_level = intr_disable();
+  int value =  FP_TO_INT_NEAR(MUL_FP_INT(thread_current()->recent_cpu, 100));
+  intr_set_level(old_level);
+  return value;
+}
+
+void update_priority(struct thread *t){
+  if(t!=idle_thread){
+    int prio_thread = FP_TO_INT_NEAR(SUB_FP_INT(SUB_FP(INT_TO_FP(63),DIV_FP_INT(t->recent_cpu,4)), t->nice * 2));
+    if(prio_thread>63) prio_thread=63;
+    if(prio_thread<0) prio_thread=0;
+    t->priority = prio_thread;
+
+  }
+}
+
+void
+update_priority_all(void) {
+
+    
+    struct list_elem *e;
+    enum intr_level old = intr_disable();
+    for (e = list_begin(&all_list);
+         e != list_end(&all_list);
+         e = list_next(e)) {
+
+        struct thread *t = list_entry(e, struct thread, allelem);
+        update_priority(t);
+    }
+    list_sort(&ready_list, ord_prio, NULL);
+    if (!list_empty(&ready_list)) {
+        struct thread *t = list_entry(list_front(&ready_list),
+                                      struct thread, elem);
+        if (t->priority > thread_current()->priority)
+            intr_yield_on_return();
+    }
+    intr_set_level(old);
+}
 // =================================================================
 
 
