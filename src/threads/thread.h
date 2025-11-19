@@ -99,6 +99,8 @@ struct thread
 
     /* betalterações: */
     int64_t wakeup_tick;                /* Moment to wake up. */
+    int nice;                           /* Niceness. */
+    int recent_cpu;                     /* Recent use. */
 
 
     /* Shared between thread.c and synch.c. */

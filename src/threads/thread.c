@@ -22,6 +22,29 @@
 #define A 55
 
 
+// =========================== OPERATIONS ===========================
+
+typedef int fixed_t;
+
+#define F (1 << 14); // 2¹⁴
+
+#define INT_TO_FP(n) ((fixed_t)(n) * F); 
+#define FP_TO_INT(x) (x / F);
+#define FP_TO_INT_NEAR(x) (x >= 0 ? (x + F / 2) / F : (x - F / 2) / F);
+
+#define ADD_FP(x,y) (x + y);
+#define SUB_FP(x,y) (x - y);
+#define ADD_FP_INT(x,n) (x + (n * F));
+#define SUB_FP_INT(x,n) (x - (n * F));
+
+#define MUL_FP(x,y) ( (fixed_t) (((int64_t)(x)*y) / F ) );
+#define MUL_FP_INT(x,n) (x * n);
+#define DIV_FP(x,y) ( (fixed_t) (((int64_t)(x)*F) / y) );
+#define DIV_FP_INT(x,n) (x / n);
+
+// ==================================================================
+
+
 
 // =========================== LISTS ===========================
 /* List of processes in THREAD_READY state, that is, processes
@@ -77,6 +100,8 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
 
+int avg = 0;
+
 static void kernel_thread (thread_func *, void *aux);
 
 static void idle (void *aux UNUSED);
@@ -105,7 +130,7 @@ static tid_t allocate_tid (void);
 
 
 
-void
+void 
 thread_init (void) 
 {
   ASSERT (intr_get_level () == INTR_OFF);
@@ -122,6 +147,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
 }
 
 
@@ -466,6 +492,9 @@ void thread_interrupt(int64_t actual_time) {
 // ==============================================================
 
 
+
+
+
 /* Invoke function 'func' on all threads, passing along 'aux'.
    This function must be called with interrupts off. */
 void
@@ -490,7 +519,9 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  if (!thread_mlfqs) {
+    thread_current ()->priority = new_priority;
+  }
 }
 
 
@@ -506,45 +537,45 @@ thread_get_priority (void)
 
 
 
-/* Sets the current thread's nice value to NICE. */
+// =================================================================
+
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice) 
 {
-  /* Not yet implemented. */
+  thread_current()->nice = nice;
 }
 
-
-
-
-/* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current()->nice;
 }
 
-
-
-
-/* Returns 100 times the system load average. */
 int
 thread_get_load_avg (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+
+  int cur_idle;
+  if (thread_current() != idle_thread) cur_idle = 1;
+  else cur_idle = 0; 
+
+  avg = ADD_FP(MUL_FP((DIV_FP(INT_TO_FP(59), INT_TO_FP(60))), avg),  
+               MUL_FP_INT((DIV_FP(INT_TO_FP(1), INT_TO_FP(60))), (int)list_size(&ready_list) + cur_idle) ); 
+  
+  return MUL_FP_INT(avg, 100);
 }
 
-
-
-
-/* Returns 100 times the current thread's recent_cpu value. */
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  
+  int rec_cpu = ADD_FP_INT(MUL_FP(DIV_FP( MUL_FP_INT(avg, 2) , ADD_FP_INT(MUL_FP_INT(avg, 2),1)),  thread_current()->recent_cpu), thread_current()->nice) ;
+
+  return MUL_FP_INT(rec_cpu, 100);
 }
+
+// =================================================================
+
 
 
 
@@ -648,6 +679,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  t->nice = 0;
+  t->recent_cpu = 0;
+
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

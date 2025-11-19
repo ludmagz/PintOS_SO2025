@@ -17,6 +17,7 @@
 #error TIMER_FREQ <= 1000 recommended
 #endif
 
+
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
@@ -29,6 +30,7 @@ static bool too_many_loops (unsigned loops);
 static void busy_wait (int64_t loops);
 static void real_time_sleep (int64_t num, int32_t denom);
 static void real_time_delay (int64_t num, int32_t denom);
+
 
 /* Sets up the timer to interrupt TIMER_FREQ times per second,
    and registers the corresponding interrupt. */
@@ -107,6 +109,7 @@ timer_sleep (int64_t ticks)
 // =======================================================================
 
 
+
 // ========================= TIMER INTER-RUPERTS =========================
 static void timer_interrupt(struct intr_frame *args UNUSED) {
   ticks++;
@@ -114,7 +117,15 @@ static void timer_interrupt(struct intr_frame *args UNUSED) {
 
   int64_t actual_time = timer_ticks ();
 
+  if (actual_time % TIMER_FREQ == 0) {
+    avg = thread_get_load_avg();
+    thread_current()->recent_cpu = thread_get_recent_cpu();
+    thread_current()->priority = SUB_FP_INT(SUB_FP(INT_TO_FP(63),DIV_FP_INT(thread_current()->recent_cpu,4)), thread_current()->nice * 2)
+  }
+
   thread_interrupt(actual_time);
+
+
 
 }
 
