@@ -319,6 +319,10 @@ thread_unblock (struct thread *t)
   ASSERT (t->status == THREAD_BLOCKED);
   list_insert_ordered (&ready_list, &t->elem,ord_prio,NULL);
   t->status = THREAD_READY;
+   
+  struct thread *t1 = list_entry(list_front(&ready_list), struct thread, elem);
+  if (t1->priority > thread_current()->priority) intr_yield_on_return();
+  
   intr_set_level (old_level);
 }
 
@@ -557,7 +561,6 @@ thread_set_nice (int nice)
   if(nice < -20) nice = -20;
   if(nice > 20) nice = 20;
   thread_current()->nice = nice;
-  update_priority_all();
 }
 
 int
