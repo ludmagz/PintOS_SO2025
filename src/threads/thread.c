@@ -320,7 +320,15 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_insert_ordered (&ready_list, &t->elem,ord_prio,NULL);
+
+  //if (!thread_mlfqs) {
+    list_insert_ordered (&ready_list, &t->elem,ord_prio,NULL);
+  //}
+
+  //else {
+   // list_push_back(&ready_list, &t->elem);
+ // }
+
   t->status = THREAD_READY;
   
   intr_set_level (old_level);
@@ -407,7 +415,13 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    if (thread_mlfqs) {
+      list_insert_ordered (&ready_list, &cur->elem,ord_prio,NULL);
+    }
+
+    else {
+      list_push_back(&ready_list, &cur->elem);
+    }
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -487,6 +501,7 @@ void thread_interrupt(int64_t actual_time) {
       list_pop_front(&sleep_list);
 
       list_insert_ordered(&ready_list, &t->elem, ord_prio, NULL);
+      t->status = THREAD_READY;
 
       if (t->priority > thread_current()->priority) need_yield = true;
 
@@ -569,11 +584,16 @@ thread_set_nice (int nice)
   update_priority(thread_current());
 }
 
+
+
+
 int
 thread_get_nice (void) 
 {
   return thread_current()->nice;
 }
+
+
 
 int
 update_load_avg (void) 
@@ -589,17 +609,23 @@ update_load_avg (void)
   return avg;
 }
 
+
+
 int 
 thread_get_load_avg(void)
 {
   return FP_TO_INT_NEAR(MUL_FP_INT(avg,100));
 }
 
+
+
 void increment_recent_cpu(struct thread *t){
   if(t!=idle_thread){
     t->recent_cpu = ADD_FP_INT(t->recent_cpu,1);
   }
 }
+
+
 
 void
 update_recent_cpu (struct thread *t) 
@@ -609,6 +635,8 @@ update_recent_cpu (struct thread *t)
 
   t->recent_cpu = rec_cpu;
 }
+
+
 
 void
 update_recent_cpu_all(void) {
@@ -670,6 +698,7 @@ update_priority_all(void) {
 
 
 
+
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -712,6 +741,7 @@ idle (void *idle_started_ UNUSED)
 
 
 
+
 /* Function used as the basis for a kernel thread. */
 static void
 kernel_thread (thread_func *function, void *aux) 
@@ -722,6 +752,8 @@ kernel_thread (thread_func *function, void *aux)
   function (aux);       /* Execute the thread function. */
   thread_exit ();       /* If function() returns, kill the thread. */
 }
+
+
 
 
 
@@ -753,6 +785,8 @@ is_thread (struct thread *t)
 
 
 
+
+
 /* Does basic initialization of T as a blocked thread named
    NAME. */
 static void
@@ -768,16 +802,41 @@ init_thread (struct thread *t, const char *name, int priority)
   t->status = THREAD_BLOCKED;
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
-  t->priority = priority;
   t->magic = THREAD_MAGIC;
-  t->nice = 0;
-  t->recent_cpu = 0;
 
+  if (!thread_mlfqs) {
+
+    /* Escalonador simples por prioridade. */
+    t->priority = priority;
+    t->nice = 0;
+    t->recent_cpu = 0;
+
+  }
+  
+  else {
+
+    /* MLFQS: herda nice e recent_cpu do pai, exceto o initial_thread. */
+    if (t == initial_thread) {
+      t->nice = 0;
+      t->recent_cpu = 0;
+    } 
+    
+    else {
+      struct thread *cur = thread_current ();
+      t->nice = cur->nice;
+      t->recent_cpu = cur->recent_cpu;
+    }
+
+    /* Prioridade calculada pela fórmula. */
+    update_priority (t);
+  }
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
 }
+
+
 
 
 
@@ -794,6 +853,7 @@ alloc_frame (struct thread *t, size_t size)
   t->stack -= size;
   return t->stack;
 }
+
 
 
 
