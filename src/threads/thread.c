@@ -554,7 +554,10 @@ thread_get_priority (void)
 void
 thread_set_nice (int nice) 
 {
+  if(nice < -20) nice = -20;
+  if(nice > 20) nice = 20;
   thread_current()->nice = nice;
+  update_priority_all();
 }
 
 int
