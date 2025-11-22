@@ -215,7 +215,7 @@ thread_print_stats (void)
    for the new thread, or TID_ERROR if creation fails.
 
    If thread_start() has been called, then the new thread may be
-   scheduled before thread_create() rum wait minimamente implementado para ele não "passar direto" e por fim implementar o argument parssing, a ordem das implementações deve ser basicamente essa, os primeiros testes devem funcionar logo de cara se tudo tiver certo, sem os argumentos sendo passados de forma certa o resto basicamente não pega. Outra observação é de como rodar os testes nessa fase, por base podemos usar o comando T=nome; ../../utils/pintos --qemu --filesys-size=2 -p tests/userprog/$T -a $T -- -q -f run $T onde nome deve ser o nome do teste(no caso do binário do teste, pois diferente da primeira fase que os testes eram funções, nessa eles são arquivos .c que são compilados e depois passados para um sistema de arquivos 'fake' temporário, a criação dele está descrita na documentação em ineturns.  It could even exit
+   scheduled before thread_create().  It could even exit
    before thread_create() returns.  Contrariwise, the original
    thread may run for any amount of time before the new thread is
    scheduled.  Use a semaphore or some other form of
@@ -320,15 +320,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-
-  //if (!thread_mlfqs) {
-    list_insert_ordered (&ready_list, &t->elem,ord_prio,NULL);
-  //}
-
-  //else {
-   // list_push_back(&ready_list, &t->elem);
- // }
-
+   
+  list_insert_ordered (&ready_list, &t->elem,ord_prio,NULL);
   t->status = THREAD_READY;
   
   intr_set_level (old_level);
