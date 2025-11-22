@@ -538,9 +538,7 @@ thread_foreach (thread_action_func *func, void *aux)
 
   ASSERT (intr_get_level () == INTR_OFF);
 
-  for (e = list_begin (&all_list); e != list_end (&all_list);
-       e = list_next (e))
-    {
+  for (e = list_begin (&all_list); e != list_end (&all_list); e = list_next (e)) {
       struct thread *t = list_entry (e, struct thread, allelem);
       func (t, aux);
     }
@@ -642,10 +640,7 @@ void
 update_recent_cpu_all(void) {
     struct list_elem *e;
 
-    for (e = list_begin(&all_list);
-         e != list_end(&all_list);
-         e = list_next(e)) {
-
+    for (e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e)) {
         struct thread *t = list_entry(e, struct thread, allelem);
         update_recent_cpu(t);
     }
@@ -677,10 +672,7 @@ update_priority_all(void) {
     
     struct list_elem *e;
     enum intr_level old = intr_disable();
-    for (e = list_begin(&all_list);
-         e != list_end(&all_list);
-         e = list_next(e)) {
-
+    for (e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e)) {
         struct thread *t = list_entry(e, struct thread, allelem);
         update_priority(t);
     }
