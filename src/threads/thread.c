@@ -407,7 +407,7 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) {
+  if (cur != idle_thread) 
     if (thread_mlfqs) {
       list_insert_ordered (&ready_list, &cur->elem,ord_prio,NULL);
     }
