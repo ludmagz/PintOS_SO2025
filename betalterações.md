@@ -2,20 +2,20 @@
 
 ## 💥 Em 'thread.c'
 #### 😴 Criação da lista 'sleep_list' 
-- sleep_list é a lista que armazena as threads no estado **BLOQUEADO**. Com a implementação dela, as threads agora podem parar de praticar o busy wait e dormir.
+- `sleep_list` é a lista que armazena as threads no estado **BLOQUEADO**. Com a implementação dela, as threads agora podem parar de praticar o busy wait e dormir.
 
 #### 🌙 Criação da função 'void thread_sleep(int64_t ticks)'
-- essa função pega a thread atual e muda o estado dela para **BLOQUEADO**, depois, desabilitamos as interrupções para evitar condição de corrida e inserimos a thread bloqueada na sleep_list, inserindo ordenadamente ``wakeup_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)`` pela hora que devemos acordar a thread e respeitando a prioridade entre threads que deveriam acordar na mesma hora. Por último, chamamos o escalonador e habilitamos as interrupções novamente.
-  - para que fosse possível respeitar essa prioridade, implementamos um comparador que determina a ordem entre os wakeup_tick's das threads e, caso eles sejam iguais, checa a ordem de prioridade entre as threads em si. 
+- Essa função pega a thread atual e muda o estado dela para **BLOQUEADO**, depois, desabilitamos as interrupções para evitar condição de corrida e inserimos a thread bloqueada na sleep_list, inserindo ordenadamente ``wakeup_less(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)`` pela hora que devemos acordar a thread e respeitando a prioridade entre threads que deveriam acordar na mesma hora. Por último, chamamos o escalonador e habilitamos as interrupções novamente.
+  - Para que fosse possível respeitar essa prioridade, implementamos um comparador que determina a ordem entre os wakeup_tick's das threads e, caso eles sejam iguais, checa a ordem de prioridade entre as threads em si. 
  
 #### 🌞 Criação da função 'void thread_interrupt(int64_t actual_time)'    
-- essa função, desabilitando as interrupções, analisa a primeira thread de sleep_list e, caso já esteja na hora de acordar aquela thread, nós:
-1. removemos ela da sleep_list
-2. inserimos ela ordenadamente na ready_list pela ordem de prioridade da thread ('ord_prio (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)')
+- Essa função, desabilitando as interrupções, analisa a primeira thread de sleep_list e, caso já esteja na hora de acordar aquela thread, nós:
+1. Removemos ela da `sleep_list`
+2. Inserimos ela ordenadamente na ready_list pela ordem de prioridade da thread `ord_prio (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)`
 3. Mudamos o estado da thread para **PRONTO**
-4. mudamos a referência de head para a thread seguinte, que agora ocupa a primeira posição da sleep_list
-5. rodamos o while de checagem para a nova head
-6. por fim, saímos do while quando não há mais threads para acordar no atual instante e reativamos as interrupções
+4. Mudamos a referência de head para a thread seguinte, que agora ocupa a primeira posição da sleep_list
+5. Rodamos o while de checagem para a nova head
+6. Por fim, saímos do while quando não há mais threads para acordar no atual instante e reativamos as interrupções
 
 ## 🕓 Em 'timer.c'
 #### 🔇 Atualização da função 'void timer_sleep (int64_t ticks)'
@@ -119,7 +119,7 @@
 ## ⏱ Em 'synch.c'
 #### Alteração na função 'sema_up (struct semaphore *sema)'
 - Para a resolução do teste mlfqs-block. Serve para que sempre que eu desabilitar as interupções para mexer em uma lista, seja dado thread_yield() para que a próxima thread executada seja de fato a de maior prioridade que está na ready_list.
--   if (thread_mlfqs && intr_get_level() == INTR_ON) {
+  ```if (thread_mlfqs && intr_get_level() == INTR_ON) {
     thread_yield();
     }
-
+  ```
