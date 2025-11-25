@@ -53,13 +53,13 @@
 - Atualizamos o antigo valor de ``nice`` da thread atual para o valor passado na função.
 - Chamamos ``update_priority()`` para a thread atual de modo a concretizar a alteração da nova prioridade.
 
-#### 😁 Alteração na função 'int thread_get_nice (void)``
+#### 😁 Alteração na função ``int thread_get_nice (void)``
 - **antes**: a função retornava zero.
 - **depois**: Passou a retornar o valor de nice da thread atual.
 
-#### 📥 Criação da função ``int update_load_avg (void)'
-- Inicia calculando o valor de ready_threads. Esse valor é computado como sendo o tamanho da ready_list e, caso a thread atual não seja idle, ele soma 1.
-- retorna o valor calculado do avg.
+#### 📥 Criação da função ``int update_load_avg (void)``
+- Inicia calculando o valor de ``ready_threads``. Esse valor é computado como sendo o tamanho da ``ready_list`` e, caso a thread atual não seja idle, ele soma 1.
+- retorna o valor calculado do ``avg``.
 
 #### 📦 Criação da função ``int get_load_avg (void)``
 - retorna a multiplicação do ``avg`` por 100.
