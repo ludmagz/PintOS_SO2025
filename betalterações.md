@@ -119,7 +119,7 @@
 ## ⏱ Em 'synch.c'
 #### Alteração na função 'sema_up (struct semaphore *sema)'
 - Para a resolução do teste mlfqs-block. Serve para que sempre que eu desabilitar as interupções para mexer em uma lista, seja dado thread_yield() para que a próxima thread executada seja de fato a de maior prioridade que está na ready_list.
-  ```
+  ```cpp
     if (thread_mlfqs && intr_get_level() == INTR_ON) {
       thread_yield();
     }
