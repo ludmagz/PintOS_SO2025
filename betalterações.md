@@ -32,7 +32,7 @@
 - ``void thread_interrupt(int64_t);``
 
 
-# 🧠 Alterações para o funcionamento total do Multi Level Feedback Queue (mlfqs)
+# 🧠 Alterações para o funcionamento total do Multi-Level Feedback Queue (mlfqs)
 
 ## 💥 Em ``thread.c``
 #### 🕊 Criação das operações com ponto flutuante
